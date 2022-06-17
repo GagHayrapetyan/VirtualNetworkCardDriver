@@ -37,14 +37,16 @@ static const struct net_device_ops chriz_netdev_ops = {
         .ndo_open = chriz_open,
         .ndo_stop = chriz_release,
         .ndo_start_xmit = chriz_xmit,
-        .ndo_do_ioctl = chriz_ioctl,
+        .ndo_do_ioctl = chriz_ioctl
 };
 
 void chriz_init(struct net_device *dev)
 {
-
     ether_setup(dev);
     dev->netdev_ops = &chriz_netdev_ops;
+    dev->watchdog_timeo = 5;
+    dev->flags           |= IFF_NOARP;
+    dev->features        |= NETIF_F_HW_CSUM;
     printk(KERN_INFO "chriz device initialized!\n");
 }
 
@@ -68,6 +70,7 @@ static void __exit chriz_exit_module(void)
     unregister_netdev(chriz_dev);
     printk(KERN_INFO "chriz exit module... Goodbye!\n");
 }
+
 
 module_init(chriz_init_module);
 module_exit(chriz_exit_module);

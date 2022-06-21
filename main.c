@@ -1,22 +1,25 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/moduleparam.h>
-
 #include <linux/sched.h>
 #include <linux/kernel.h> /* printk() */
 #include <linux/slab.h> /* kmalloc() */
 #include <linux/errno.h>  /* error codes */
 #include <linux/types.h>  /* size_t */
 #include <linux/interrupt.h> /* mark_bh */
-
 #include <linux/in.h>
 #include <linux/netdevice.h>   /* struct device, and other headers */
 #include <linux/etherdevice.h> /* eth_type_trans */
 #include <linux/ip.h>          /* struct iphdr */
 #include <linux/tcp.h>         /* struct tcphdr */
 #include <linux/skbuff.h>
-#include <linux/version.h> 
+#include <linux/in6.h>
+#include <asm/checksum.h>
 
+
+struct snull_priv {
+    spinlock_t lock;
+};
 
 static int snull_open(struct net_device *dev)
 {
@@ -35,8 +38,14 @@ static int snull_release(struct net_device *dev)
 
 static int snull_xmit(struct sk_buff *skb, struct net_device *dev)
 {
+    
+    skb->dev = dev;
+	skb->protocol = eth_type_trans(skb, dev);
+	skb->ip_summed = CHECKSUM_UNNECESSARY;
+    netif_rx(skb);
+
     printk(KERN_INFO "SNULL xmit...\n");
-    dev_kfree_skb(skb);
+
     return 0;
 }
 
@@ -55,30 +64,6 @@ static const struct net_device_ops snull_netdev_ops = {
         .ndo_do_ioctl = snull_ioctl
 };
 
-static void snull_rx_ints(struct net_device *dev, int enable)
-{
-	struct snull_priv *priv = netdev_priv(dev);
-	priv->rx_int_enabled = enable;
-}
-
-void snull_setup_pool(struct net_device *dev)
-{
-	struct snull_priv *priv = netdev_priv(dev);
-	int i;
-	struct snull_packet *pkt;
-
-	priv->ppool = NULL;
-	for (i = 0; i < 8; i++) {
-		pkt = kmalloc (sizeof (struct snull_packet), GFP_KERNEL);
-		if (pkt == NULL) {
-			printk (KERN_NOTICE "Ran out of memory allocating packet pool\n");
-			return;
-		}
-		pkt->dev = dev;
-		pkt->next = priv->ppool;
-		priv->ppool = pkt;
-	}
-}
 
 void snull_init(struct net_device *dev)
 {
@@ -90,13 +75,9 @@ void snull_init(struct net_device *dev)
     dev->flags           |= IFF_NOARP;
     dev->features        |= NETIF_F_HW_CSUM;
 
-   priv = netdev_priv(dev);
-    memset(prev, 0, sizeof(snull_priv));
+    priv = netdev_priv(dev);
+    memset(priv, 0, sizeof(struct snull_priv));
     spin_lock_init(&priv->lock);
-    priv->dev=dev;
-
-    snull_rx_ints(dev, 1);		// enable receive interrupts 
-	snull_setup_pool(dev);
 
     printk(KERN_INFO "SNULL device initialized!\n");
 }

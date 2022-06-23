@@ -46,7 +46,7 @@ static int snull_xmit(struct sk_buff *skb, struct net_device *dev)
     skb->dev = dev;
 	skb->protocol = eth_type_trans(skb, dev);
 	skb->ip_summed = CHECKSUM_UNNECESSARY;
-    netif_rx(skb);
+    netif_rx_ni(skb);
 
     printk(KERN_INFO "SNULL xmit...\n");
 

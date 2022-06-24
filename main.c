@@ -39,9 +39,17 @@ static int snull_release(struct net_device *dev)
 static int snull_xmit(struct sk_buff *skb, struct net_device *dev)
 {
     struct iphdr *ip_header = (struct iphdr *)skb_network_header(skb);
-    __be32 src_ip = ip_header->saddr;
+    unsigned int src_ip = (unsigned int)ip_header->saddr;
+    unsigned int dest_ip = (unsigned int)ip_header->daddr;
+    printk(KERN_DEBUG "IP addres = %pI4  DEST = %pI4\n", &src_ip, &dest_ip);
+
+    __be32 ip_tmp = ip_header->saddr;
     ip_header->saddr = ip_header->daddr;
-    ip_header->daddr = src_ip;
+    ip_header->daddr = ip_tmp;
+
+    src_ip = (unsigned int)ip_header->saddr;
+    dest_ip = (unsigned int)ip_header->daddr;
+    printk(KERN_DEBUG "IP addres = %pI4  DEST = %pI4\n", &src_ip, &dest_ip);
     
     skb->dev = dev;
 	skb->protocol = eth_type_trans(skb, dev);

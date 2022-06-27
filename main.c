@@ -93,7 +93,12 @@ void drv_init(struct net_device *dev)
 {
     ether_setup(dev);
     dev->netdev_ops = &drv_netdev_ops;
-    dev->dev_addr = "08:00:27:9a:21:29";
+    dev->dev_addr[0] = 1;
+    dev->dev_addr[1] = 2;
+    dev->dev_addr[2] = 3;
+    dev->dev_addr[3] = 4;
+    dev->dev_addr[4] = 5;
+    dev->dev_addr[5] = 6;
     dev->watchdog_timeo = 5;
     dev->flags           |= IFF_NOARP;
     dev->features        |= NETIF_F_HW_CSUM;

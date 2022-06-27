@@ -19,6 +19,23 @@
 
 struct net_device *drv_dev = NULL;
 
+void swap_ip_address(struct sk_buff *skb){
+    struct iphdr *ip_header = (struct iphdr *)skb_network_header(skb);
+   
+    __be32 ip_tmp = ip_header->saddr;
+    ip_header->saddr = ip_header->daddr;
+    ip_header->daddr = ip_tmp;
+}
+
+void swap_mac_address(struct sk_buff *skb){
+    struct ethhdr *ether = eth_hdr(skb);   
+    
+    unsigned char mac_tmp[ETH_ALEN];
+    memcpy(mac_tmp, ether->h_source, sizeof(mac_tmp));
+    memcpy(ether->h_source, ether->h_dest, sizeof(mac_tmp));
+    memcpy(ether->h_dest, mac_tmp, sizeof(mac_tmp));
+}
+
 
 static int drv_open(struct net_device *dev)
 {
@@ -36,38 +53,14 @@ static int drv_release(struct net_device *dev)
 
 static int drv_xmit(struct sk_buff *skb, struct net_device *dev)
 {
-    struct iphdr *ip_header = (struct iphdr *)skb_network_header(skb);
-    unsigned int src_ip = (unsigned int)ip_header->saddr;
-    unsigned int dest_ip = (unsigned int)ip_header->daddr;
-    struct ethhdr *ether = eth_hdr(skb);
-    
-    printk(KERN_DEBUG "IP addres = %pI4  DEST = %pI4\n", &src_ip, &dest_ip);
-    printk("Src: %x:%x:%x:%x:%x:%x \t Dest: %x:%x:%x:%x:%x:%x\n", 
-    ether->h_source[0], ether->h_source[1], ether->h_source[2], ether->h_source[3], ether->h_source[4], ether->h_source[5],
-    ether->h_dest[0], ether->h_dest[1], ether->h_dest[2], ether->h_dest[3], ether->h_dest[4], ether->h_dest[5]);
+    swap_ip_address(skb);
+    swap_mac_address(skb);
 
-    __be32 ip_tmp = ip_header->saddr;
-    ip_header->saddr = ip_header->daddr;
-    ip_header->daddr = ip_tmp;
-    
-    unsigned char mac_tmp[ETH_ALEN];
-    memcpy(mac_tmp, ether->h_source, sizeof(mac_tmp));
-    memcpy(ether->h_source, ether->h_dest, sizeof(mac_tmp));
-    memcpy(ether->h_dest, mac_tmp, sizeof(mac_tmp));
-
-    src_ip = (unsigned int)ip_header->saddr;
-    dest_ip = (unsigned int)ip_header->daddr;
-    printk(KERN_DEBUG "IP addres = %pI4  DEST = %pI4\n", &src_ip, &dest_ip);
-    printk("Src: %x:%x:%x:%x:%x:%x \t Dest: %x:%x:%x:%x:%x:%x\n", 
-    ether->h_source[0], ether->h_source[1], ether->h_source[2], ether->h_source[3], ether->h_source[4], ether->h_source[5],
-    ether->h_dest[0], ether->h_dest[1], ether->h_dest[2], ether->h_dest[3], ether->h_dest[4], ether->h_dest[5]);
-    
     skb->dev = dev;
 	skb->protocol = eth_type_trans(skb, dev);
 	skb->ip_summed = CHECKSUM_UNNECESSARY;
     netif_rx_ni(skb);
     
-
     printk(KERN_INFO "Driver xmit...\n");
 
     return 0;

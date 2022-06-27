@@ -50,12 +50,10 @@ static int drv_xmit(struct sk_buff *skb, struct net_device *dev)
     ip_header->saddr = ip_header->daddr;
     ip_header->daddr = ip_tmp;
     
-    unsigned char *mac_tmp;
-
-    strcpy(mac_tmp, ether->h_source);
-    strcpy(ether->h_source, ether->h_dest);
-    strcpy(ether->h_dest, mac_tmp);
-
+    unsigned char mac_tmp[ETH_ALEN];
+    memcpy(mac_tmp, ether->h_source, sizeof(mac_tmp));
+    memcpy(ether->h_source, ether->h_dest, sizeof(mac_tmp));
+    memcpy(ether->h_dest, mac_tmp, sizeof(mac_tmp));
 
     src_ip = (unsigned int)ip_header->saddr;
     dest_ip = (unsigned int)ip_header->daddr;
